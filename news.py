@@ -40,31 +40,41 @@ def articler(link):
     # p(article)
     articles['posts'].append(article)
 
-link = 'https://tech.co/news'
-r = get(link, headers=headers).text
+def updater():
+    link = 'https://tech.co/news'
+    r = get(link, headers=headers).text
+        
+    soup = bs4(r, "html.parser")
     
-soup = bs4(r, "html.parser")
+    a = soup.find_all(class_="post-link")
+    
+    links = []
+    for a_ in a:
+        links.append(a_.attrs['href'])
+    
+    threads = []
+    for link in links:
+        thread = Thread(target = articler, args = (link,))
+        threads.append(thread)
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    
+    p('Scraped {} Articles'.format(len(articles['posts'])))
+    
+    try:
+        with open('news.json', 'w') as f:
+            dump(articles, f, indent=2)
+        p('Articles Dumped')
+    except Exception as e:
+        p(f'{e}')
 
-a = soup.find_all(class_="post-link")
-
-links = []
-for a_ in a:
-    links.append(a_.attrs['href'])
-
-threads = []
-for link in links:
-    thread = Thread(target = articler, args = (link,))
-    threads.append(thread)
-for thread in threads:
-    thread.start()
-for thread in threads:
-    thread.join()
-
-p('Scraped {} Articles'.format(len(articles['posts'])))
-
-try:
-    with open('news.json', 'w') as f:
-        dump(articles, f, indent=2)
-    p('Articles Dumped')
-except Exception as e:
-    p(f'{e}')
+while True:
+    try:
+        updater()
+    except KeyboardInterrupt:
+        break
+    except Exception as e:
+        p(e)
+        break
